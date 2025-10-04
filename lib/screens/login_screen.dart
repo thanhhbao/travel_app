@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:app_test/routes.dart';
 import 'package:app_test/screens/signup_screen.dart';
+import 'package:app_test/services/auth_service.dart'; // <-- thêm
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,7 +21,9 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false;
+
+  bool _isLoadingEmail = false; // tách loading
+  bool _isLoadingGoogle = false; // loading cho Google
 
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
@@ -58,19 +61,51 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  void _login() async {
-    setState(() => _isLoading = true);
+  Future<void> _login() async {
+    setState(() => _isLoadingEmail = true);
     try {
-      // TODO: gọi API thật
+      // TODO: gọi API thật (AuthService.instance.signInWithEmail)
       await Future.delayed(const Duration(milliseconds: 800));
       if (!mounted) return;
-
-      // Xoá stack và vào Home
-      Navigator.of(
+      Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (_) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
         context,
-      ).pushNamedAndRemoveUntil(Routes.home, (route) => false);
+      ).showSnackBar(SnackBar(content: Text('Đăng nhập thất bại: $e')));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoadingEmail = false);
+    }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    if (_isLoadingGoogle) return;
+    setState(() => _isLoadingGoogle = true);
+    try {
+      final cred = await AuthService.instance.signInWithGoogle();
+      if (cred == null) {
+        // user hủy chọn tài khoản
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã huỷ đăng nhập Google')),
+        );
+        return;
+      }
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil(Routes.home, (_) => false);
+    } on UnsupportedError catch (e) {
+      // Trường hợp chạy Web hoặc nền tảng không hỗ trợ authenticate()
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Sign-In chưa hỗ trợ: ${e.message}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Đăng nhập Google lỗi: $e')));
+    } finally {
+      if (mounted) setState(() => _isLoadingGoogle = false);
     }
   }
 
@@ -200,11 +235,11 @@ class _LoginScreenState extends State<LoginScreen>
 
                   const SizedBox(height: 28),
 
-                  // Login Button
+                  // Login Button (email)
                   _buildButton(
                     text: 'Đăng nhập',
                     onPressed: _login,
-                    isLoading: _isLoading,
+                    isLoading: _isLoadingEmail,
                   ),
 
                   const SizedBox(height: 28),
@@ -241,6 +276,8 @@ class _LoginScreenState extends State<LoginScreen>
                         child: _buildSocialButton(
                           label: 'Google',
                           icon: Icons.g_mobiledata_rounded,
+                          isLoading: _isLoadingGoogle,
+                          onPressed: _loginWithGoogle, // <-- gọi Google
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -248,6 +285,15 @@ class _LoginScreenState extends State<LoginScreen>
                         child: _buildSocialButton(
                           label: 'Facebook',
                           icon: Icons.facebook_rounded,
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Facebook Sign-In: chưa triển khai',
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -444,40 +490,58 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildSocialButton({required String label, required IconData icon}) {
-    return Container(
-      height: 52,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {},
+  Widget _buildSocialButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onPressed,
+    bool isLoading = false,
+  }) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 150),
+      opacity: isLoading ? 0.7 : 1,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: _primary, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: _primary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isLoading ? null : onPressed,
+            borderRadius: BorderRadius.circular(14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isLoading) ...[
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 8),
+                ] else ...[
+                  Icon(icon, color: _primary, size: 24),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: _primary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

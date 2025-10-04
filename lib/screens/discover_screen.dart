@@ -1,4 +1,6 @@
+import 'package:app_test/widgets/discover/discover_filter_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:app_test/screens/detail_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -33,70 +35,100 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+          if (canPop) ...[
+            _HeaderButton(
+              icon: Icons.arrow_back_ios_new_rounded,
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
+            const SizedBox(width: 12),
+          ],
+          // search box (giữ nguyên)
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color: const Color(0xFF0E4C45).withOpacity(.65),
-                      ),
-                      const SizedBox(width: 12),
-
-                      const Expanded(
-                        child: Text(
-                          'Tìm điểm đến...',
-                          style: TextStyle(
-                            color: Color(0xFF818A9A),
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Container(
-                height: 48,
-                width: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 12,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.search,
+                    color: const Color(0xFF0E4C45).withValues(alpha: .65),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Tìm điểm đến...',
+                      style: TextStyle(color: Color(0xFF818A9A), fontSize: 15),
                     ),
-                  ],
-                ),
-                child: const Icon(Icons.tune, color: Color(0xFF0E4C45)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // filter button
+          _HeaderButton(
+            icon: Icons.tune,
+            onTap: () async {
+              final res = await (context, totalCount: 15);
+              if (res != null) {
+                // TODO: áp dụng filter vào danh sách (nếu bạn muốn)
+                // ví dụ: setState ở màn hình cha hoặc dùng provider/bloc.
+                // Ở đây là demo UI nên chỉ log nhẹ:
+                // debugPrint('Filters: ${res.selectedTypes} ${res.minPrice}-${res.maxPrice}, rating ${res.rating}');
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderButton extends StatelessWidget {
+  const _HeaderButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          height: 48,
+          width: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
               ),
             ],
           ),
-        ],
+          child: Icon(icon, color: const Color(0xFF0E4C45)),
+        ),
       ),
     );
   }
@@ -153,117 +185,129 @@ class _DiscoverCard extends StatelessWidget {
   final _DiscoverCardData data;
   const _DiscoverCard({required this.data});
 
+  void _openDetail(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => HotelDetailScreen(stay: data.toStay())),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Image.network(data.image, fit: BoxFit.cover),
+    return GestureDetector(
+      onTap: () => _openDetail(context),
+      child: Container(
+        width: 280,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 12),
             ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black54],
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.network(data.image, fit: BoxFit.cover),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black54],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 16,
-              left: 16,
-              child: _Badge(
-                icon: Icons.star,
-                text: data.rating.toStringAsFixed(1),
+              Positioned(
+                top: 16,
+                left: 16,
+                child: _Badge(
+                  icon: Icons.star,
+                  text: data.rating.toStringAsFixed(1),
+                ),
               ),
-            ),
-            const Positioned(top: 16, right: 16, child: _Bookmark()),
-            Positioned(
-              bottom: 20,
-              left: 20,
-              right: 20,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '\$${data.price}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 25,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          data.title,
+              const Positioned(top: 16, right: 16, child: _Bookmark()),
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '\$${data.price}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 25,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    data.location,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 14),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF0E4C45),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      onPressed: () {},
-                      child: const Text('Xem chi tiết'),
+                        const SizedBox(width: 6),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            data.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 17,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      data.location,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 14),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF0E4C45),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        onPressed: () => _openDetail(context),
+                        child: const Text('Xem chi tiết'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -273,7 +317,13 @@ class _DiscoverCard extends StatelessWidget {
 class _PopularPlaces extends StatelessWidget {
   const _PopularPlaces();
 
-  static const _chips = ['Biển', 'Núi', 'Đảo', 'Hồ'];
+  static const _chips = [
+    'Có ban công',
+    'Hướng Núi',
+    'Hướng Biển',
+    'Có bãi đỗ xe',
+    'Hồ bơi',
+  ];
   static const _places = [
     _DiscoverCardData(
       title: 'Thành Phố Hồ Chí Minh',
@@ -400,7 +450,7 @@ class _CategoryChip extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE1E6EC)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -421,108 +471,117 @@ class _MiniCard extends StatelessWidget {
   final _DiscoverCardData data;
   const _MiniCard({required this.data});
 
+  void _openDetail(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => HotelDetailScreen(stay: data.toStay())),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Image.network(data.image, fit: BoxFit.cover),
+    return GestureDetector(
+      onTap: () => _openDetail(context),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 8),
             ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black54],
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Image.network(data.image, fit: BoxFit.cover),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black54],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 12,
-              left: 12,
-              child: _Badge(
-                icon: Icons.star,
-                text: data.rating.toStringAsFixed(1),
+              Positioned(
+                top: 12,
+                left: 12,
+                child: _Badge(
+                  icon: Icons.star,
+                  text: data.rating.toStringAsFixed(1),
+                ),
               ),
-            ),
-            const Positioned(top: 12, right: 12, child: _Bookmark(size: 32)),
-            Positioned(
-              bottom: 16,
-              left: 12,
-              right: 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '\$${data.price}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
-                        '/đêm',
-                        style: TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    data.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        size: 12,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          data.location,
+              const Positioned(top: 12, right: 12, child: _Bookmark(size: 32)),
+              Positioned(
+                bottom: 16,
+                left: 12,
+                right: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '\$${data.price}',
                           style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          '/đêm',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      data.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 12,
+                          color: Colors.white70,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            data.location,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -548,14 +607,6 @@ class _SectionTitle extends StatelessWidget {
               color: Color(0xFF0E4C45),
             ),
           ),
-          const Spacer(),
-          TextButton(
-            onPressed: onSeeAll,
-            child: const Text(
-              'Xem tất cả',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
-          ),
         ],
       ),
     );
@@ -572,7 +623,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -604,10 +655,10 @@ class _Bookmark extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        color: Colors.white.withValues(alpha: 0.85),
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8),
         ],
       ),
       child: const Icon(Icons.bookmark_add_outlined, color: Color(0xFF0E4C45)),
@@ -629,4 +680,44 @@ class _DiscoverCardData {
     required this.location,
     required this.image,
   });
+
+  Stay toStay() {
+    final id = 'stay_${image.hashCode & 0x7fffffff}';
+    final gallery = <String>{
+      image,
+      ..._galleryFallback,
+    }.toList(growable: false);
+    return Stay(
+      id: id,
+      name: title,
+      address: location,
+      rating: rating,
+      basePricePerNight: price,
+      images: gallery,
+      amenities: List<String>.from(_defaultAmenities),
+      rooms: List<RoomType>.from(_defaultRooms),
+      managerPhone: '+84901234567',
+      managerEmail: 'booking_$id@travelapp.dev',
+    );
+  }
 }
+
+const _galleryFallback = <String>[
+  'https://images.unsplash.com/photo-1512914890250-353c97c9e8a0?w=1600',
+  'https://images.unsplash.com/photo-1512914891243-1dc33f9fb8ea?w=1600',
+];
+
+const _defaultAmenities = <String>[
+  'Wifi miễn phí',
+  'Hồ bơi vô cực',
+  'Gym 24/7',
+  'Ăn sáng buffet',
+  'Dịch vụ dọn phòng',
+  'Bãi đỗ xe',
+];
+
+const _defaultRooms = <RoomType>[
+  RoomType(name: 'Standard Queen', capacity: 2, priceMultiplier: 1.0),
+  RoomType(name: 'Deluxe King', capacity: 3, priceMultiplier: 1.25),
+  RoomType(name: 'Family Suite', capacity: 4, priceMultiplier: 1.6),
+];

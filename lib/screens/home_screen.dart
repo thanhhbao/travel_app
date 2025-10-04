@@ -1,10 +1,10 @@
 import 'package:app_test/models/search_value.dart';
-import 'package:app_test/widgets/header.dart';
+import 'package:app_test/widgets/home/header.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/location_search_group.dart';
+import '../widgets/home/location_search_group.dart';
 import '../widgets/recommended_section.dart';
-import '../widgets/deals_section.dart';
+import '../widgets/home/deals_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

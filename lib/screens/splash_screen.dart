@@ -1,10 +1,17 @@
-import 'package:app_test/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-// ==================== SPLASH SCREEN ====================
+import 'package:app_test/screens/login_screen.dart';
+
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({
+    super.key,
+    this.autoNavigate = true, // ⬅️ mới thêm
+  });
+
+  /// Nếu true: tự chuyển sang Login sau vài giây.
+  /// Nếu false: chỉ hiển thị splash (dùng cho AuthGate trong lúc đợi Firebase).
+  final bool autoNavigate;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -18,7 +25,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _floatAnimation;
   late Animation<double> _pulseAnimation;
-  late Timer _navTimer;
+
+  Timer? _navTimer; // ⬅️ cho phép null
 
   @override
   void initState() {
@@ -54,30 +62,34 @@ class _SplashScreenState extends State<SplashScreen>
 
     _fadeController.forward();
 
-    _navTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const LoginScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              ),
-              child: child,
-            );
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
-    });
+    // ⬇️ Chỉ set Timer điều hướng khi autoNavigate = true
+    if (widget.autoNavigate) {
+      _navTimer = Timer(const Duration(seconds: 3), () {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const LoginScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeInOut,
+                    ),
+                    child: child,
+                  );
+                },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        );
+      });
+    }
   }
 
   @override
   void dispose() {
-    _navTimer.cancel();
+    _navTimer?.cancel(); // ⬅️ null-safe
     _fadeController.dispose();
     _floatController.dispose();
     _pulseController.dispose();
@@ -190,7 +202,6 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
 
                       const SizedBox(height: 45),
-
                       const Text(
                         'TRAVELHUB',
                         style: TextStyle(
@@ -207,9 +218,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 14),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 22,
@@ -233,7 +242,6 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 90),
 
                       // Smooth loading

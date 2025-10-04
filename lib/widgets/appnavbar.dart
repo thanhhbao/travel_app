@@ -23,8 +23,8 @@ class AppNavBar extends StatefulWidget {
   static const EdgeInsets outerPadding = EdgeInsets.fromLTRB(16, 10, 16, 24);
 
   static double overlaySpace(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    return barHeight + outerPadding.vertical + bottomInset;
+    final bottom = MediaQuery.of(context).padding.bottom;
+    return barHeight + outerPadding.vertical + bottom;
   }
 
   @override
@@ -33,6 +33,13 @@ class AppNavBar extends StatefulWidget {
 
 class _AppNavBarState extends State<AppNavBar>
     with SingleTickerProviderStateMixin {
+  // timing
+  static const _wAnimDur = Duration(milliseconds: 420);
+  static const _boxAnimDur = Duration(milliseconds: 360);
+  static const _switchDur = Duration(milliseconds: 220);
+  static const _wCurve = Curves.easeOutExpo; // mượt, đuôi chậm
+  static const _boxCurve = Curves.easeOutCubic;
+
   static const _gradient = LinearGradient(
     colors: [Color(0xFF2FB9A6), Color(0xFF0E4C45)],
     begin: Alignment.centerLeft,
@@ -45,15 +52,16 @@ class _AppNavBarState extends State<AppNavBar>
       activeIcon: Icons.home,
       label: 'Trang chủ',
     ),
+
     _NavItem(
-      icon: Icons.gps_fixed_outlined,
-      activeIcon: Icons.gps_fixed_rounded,
-      label: 'Khám phá',
+      icon: Icons.bookmark_add_outlined,
+      activeIcon: Icons.bookmark_added,
+      label: 'Đã lưu',
     ),
     _NavItem(
-      icon: Icons.bookmark_border,
-      activeIcon: Icons.bookmark,
-      label: 'Đã lưu',
+      icon: Icons.map_outlined,
+      activeIcon: Icons.map_sharp,
+      label: 'Chuyến đi',
     ),
     _NavItem(
       icon: Icons.person_outline,
@@ -71,7 +79,6 @@ class _AppNavBarState extends State<AppNavBar>
   );
 
   late final AnimationController _c;
-  late final Animation<double> _fade;
   late final Animation<double> _scale;
 
   @override
@@ -79,13 +86,12 @@ class _AppNavBarState extends State<AppNavBar>
     super.initState();
     _c = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 380),
     )..value = 1;
-    _fade = CurvedAnimation(
+    _scale = CurvedAnimation(
       parent: _c,
-      curve: const Interval(.15, .85, curve: Curves.easeOut),
-    );
-    _scale = CurvedAnimation(parent: _c, curve: Curves.elasticOut);
+      curve: Curves.elasticOut,
+    ); // bounce nhẹ icon active
   }
 
   @override
@@ -115,13 +121,13 @@ class _AppNavBarState extends State<AppNavBar>
 
   @override
   Widget build(BuildContext context) {
-    // Kích thước & khoảng cách cơ bản
-    const iconFrame = 50.0; // “khung” tròn của mỗi ô
-    const iconSize = 21.0; // cỡ icon vẽ thực
-    const innerPad = 12.0; // padding ngang khi active
-    const gap = 6.0; // khoảng cách icon–text bên trong
-    const spacing = 8.0; // khoảng cách giữa các ô
-    const hPad = 18.0; // padding ngang của container
+    // kích thước cố định
+    const double iconFrame = 50.0;
+    const double iconSize = 21.0;
+    const double innerPad = 12.0;
+    const double gap = 6.0;
+    const double hPad = 18.0;
+    const double minGap = 8.0; // min spacing giữa các item
 
     return SafeArea(
       top: false,
@@ -129,33 +135,27 @@ class _AppNavBarState extends State<AppNavBar>
         padding: AppNavBar.outerPadding,
         child: LayoutBuilder(
           builder: (context, cons) {
-            final available = cons.maxWidth - (hPad * 2);
-            final inactiveCount = _items.length - 1;
+            final double available = cons.maxWidth - (hPad * 2);
 
-            // 1) Tính width mong muốn cho ô active dựa trên nhãn hiện tại
+            // width mong muốn cho active
             final label = _items[widget.currentIndex].label;
             final labelW = _textWidth(label, _labelStyle);
-            final desiredActiveW = innerPad * 2 + iconSize + gap + labelW;
+            const double safety = 12.0;
+            final double wantA =
+                innerPad * 2 + iconSize + gap + labelW + safety;
 
-            // 2) Giới hạn để không overflow (chừa mỗi inactive >= iconFrame)
-            final minForInactives =
-                iconFrame * inactiveCount + spacing * (_items.length - 1);
-            final maxActiveW = math.max(iconFrame, available - minForInactives);
-            final activeW = desiredActiveW.clamp(iconFrame, maxActiveW);
-
-            // 3) Chia đều phần còn lại cho inactives
-            final remain = available - activeW - spacing * (_items.length - 1);
-            final inactiveW = math.max(iconFrame, remain / inactiveCount);
-
-            // 4) Đổi sang flex để lấp kín hàng 100% (tránh sai số 1–3 px dẫn đến overflow)
-            //    Ta scale các width này thành flex int.
-            const totalFlex = 1000; // số lớn để chia tỉ lệ mịn
-            final aFlex = (activeW / available * totalFlex).round();
-            final iFlex = ((inactiveW / available) * totalFlex).round();
+            // để lại chỗ cho các icon còn lại + khoảng cách tối thiểu
+            final double maxA = math.max(
+              iconFrame,
+              available -
+                  (iconFrame * (_items.length - 1)) -
+                  (minGap * (_items.length - 1)),
+            );
+            final double activeW = wantA.clamp(iconFrame, maxA);
 
             return AnimatedBuilder(
               animation: _c,
-              builder: (context, _) {
+              builder: (_, __) {
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(40),
                   child: BackdropFilter(
@@ -167,7 +167,7 @@ class _AppNavBarState extends State<AppNavBar>
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withOpacity(.9),
                         borderRadius: BorderRadius.circular(40),
                         border: Border.all(
                           color: Colors.white.withOpacity(.28),
@@ -182,40 +182,32 @@ class _AppNavBarState extends State<AppNavBar>
                         ],
                       ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(_items.length, (i) {
-                          final isActive = i == widget.currentIndex;
-                          return Expanded(
-                            flex: isActive ? aFlex : iFlex,
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                left: i == 0 ? 0 : spacing,
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(28),
-                                  onTap: () => widget.onTap(i),
-                                  child: Center(
-                                    // SizedBox.expand để đảm bảo child nhận đủ chiều cao
-                                    child: SizedBox(
-                                      height: iconFrame,
-                                      child: _NavButton(
-                                        item: _items[i],
-                                        isActive: isActive,
-                                        gradient: _gradient,
-                                        labelStyle: _labelStyle,
-                                        fade: _c.isAnimating
-                                            ? _fade.value
-                                            : 1.0,
-                                        scale: _c.isAnimating
-                                            ? _scale.value
-                                            : 1.0,
-                                        innerPad: innerPad,
-                                        iconSize: iconSize,
-                                        gap: gap,
-                                      ),
-                                    ),
-                                  ),
+                          final bool isActive = i == widget.currentIndex;
+                          final double w = isActive ? activeW : iconFrame;
+
+                          // 👉 animate WIDTH mềm mại
+                          return AnimatedContainer(
+                            duration: _wAnimDur,
+                            curve: _wCurve,
+                            width: w,
+                            height: iconFrame,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(28),
+                                onTap: () => widget.onTap(i),
+                                child: _NavButton(
+                                  item: _items[i],
+                                  isActive: isActive,
+                                  gradient: _gradient,
+                                  labelStyle: _labelStyle,
+
+                                  scale: _c.isAnimating ? _scale.value : 1.0,
+                                  innerPad: innerPad,
+                                  iconSize: iconSize,
+                                  gap: gap,
                                 ),
                               ),
                             ),
@@ -236,11 +228,11 @@ class _AppNavBarState extends State<AppNavBar>
 
 class _NavButton extends StatelessWidget {
   const _NavButton({
+    super.key,
     required this.item,
     required this.isActive,
     required this.gradient,
     required this.labelStyle,
-    required this.fade,
     required this.scale,
     required this.innerPad,
     required this.iconSize,
@@ -251,7 +243,6 @@ class _NavButton extends StatelessWidget {
   final bool isActive;
   final Gradient gradient;
   final TextStyle labelStyle;
-  final double fade;
   final double scale;
   final double innerPad;
   final double iconSize;
@@ -296,12 +287,25 @@ class _NavButton extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: gap),
+
+                // label trượt nhẹ, KHÔNG fade
                 Flexible(
-                  child: Opacity(
-                    opacity: fade,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, anim) => SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(.06, 0),
+                        end: Offset.zero,
+                      ).animate(anim),
+                      child: child,
+                    ),
                     child: Text(
                       item.label,
+                      key: ValueKey(item.label),
                       maxLines: 1,
+                      softWrap: false,
                       overflow: TextOverflow.ellipsis,
                       style: labelStyle,
                     ),

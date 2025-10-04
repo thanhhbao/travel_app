@@ -1,17 +1,18 @@
-import 'package:app_test/routes.dart';
-import 'package:app_test/screens/splash_screen.dart';
-
-import 'package:app_test/widgets/main_shell.dart';
+import 'package:app_test/widgets/auth_gate.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:app_test/firebase_options.dart';
+import 'package:app_test/routes.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,8 +24,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'SF Pro Display',
         useMaterial3: false,
       ),
-      // Bắt đầu vào Splash trước
-      initialRoute: Routes.splash,
+      home: const AuthGate(),
       onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }

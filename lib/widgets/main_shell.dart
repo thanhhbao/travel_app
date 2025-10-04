@@ -1,5 +1,7 @@
 import 'package:app_test/screens/discover_screen.dart';
 import 'package:app_test/screens/home_screen.dart';
+import 'package:app_test/screens/profile_screen.dart';
+import 'package:app_test/screens/trip_screen.dart';
 import 'package:app_test/widgets/appnavbar.dart';
 import 'package:flutter/material.dart';
 
@@ -15,9 +17,9 @@ class _MainShellState extends State<MainShell> {
 
   static const List<Widget> _screens = [
     HomeScreen(),
-    DiscoverScreen(),
     _PlaceholderScreen(title: 'Đã lưu'),
-    _PlaceholderScreen(title: 'Tài khoản'),
+    TripsScreen(),
+    ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {

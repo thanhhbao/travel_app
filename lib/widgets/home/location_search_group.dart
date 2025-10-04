@@ -1,9 +1,9 @@
 import 'package:app_test/models/search_value.dart';
 import 'package:app_test/screens/home_screen.dart';
+import 'package:app_test/widgets/home/searchbox.dart';
 import 'package:flutter/material.dart';
 
 import 'location_card.dart';
-import 'searchbox.dart' hide SearchValues;
 
 class LocationSearchGroup extends StatelessWidget {
   final SearchValues initial;
